@@ -114,6 +114,68 @@
             font-family: 'Courier New', monospace;
         }
 
+        .file-upload {
+            border: 2px dashed #dfe1e6;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+
+        .file-upload.dragover {
+            border-color: #4facfe;
+            background: #e8f4fd;
+        }
+
+        .file-upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            color: #6c757d;
+        }
+
+        .file-upload-text {
+            font-size: 1.1em;
+            color: #42526e;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-hint {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-info {
+            background: #e8f4fd;
+            border: 1px solid #b3d8f2;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .file-info-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .file-info-details {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .btn {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
@@ -138,12 +200,23 @@
             transform: translateY(0);
         }
 
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-secondary {
             background: #6c757d;
         }
 
         .btn-success {
             background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
         }
 
         .preview-table {
@@ -257,13 +330,48 @@
             background: #f8d7da;
             color: #721c24;
         }
+
+        .input-method-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e1e5e9;
+        }
+
+        .input-method-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .input-method-tab.active {
+            color: #4facfe;
+            border-bottom-color: #4facfe;
+        }
+
+        .input-method-tab:hover {
+            color: #4facfe;
+        }
+
+        .input-method-content {
+            display: none;
+        }
+
+        .input-method-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>🚀 Jira Bulk Task Creator</h1>
-            <p>Create multiple Jira tasks from CSV/JSON data with ease</p>
+            <p>Create multiple Jira tasks from Excel/CSV/JSON data with ease</p>
         </div>
 
         <div class="content">
@@ -282,15 +390,9 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="apiToken">API Token</label>
-                        <input type="password" id="apiToken" placeholder="Your Jira API Token" />
-                    </div>
-                    <div class="form-group">
                         <label for="projectKey">Project Key</label>
                         <input type="text" id="projectKey" placeholder="PROJ" />
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
                         <label for="issueType">Issue Type</label>
                         <select id="issueType">
@@ -306,31 +408,75 @@
             <!-- Input Section -->
             <div class="input-section">
                 <h2 class="section-title">📋 Task Data</h2>
-                <div class="form-group">
-                    <label for="inputFormat">Input Format</label>
-                    <select id="inputFormat" onchange="toggleInputFormat()">
-                        <option value="csv">CSV</option>
-                        <option value="json">JSON</option>
-                    </select>
+                
+                <!-- Input Method Tabs -->
+                <div class="input-method-tabs">
+                    <button class="input-method-tab active" onclick="switchInputMethod('file')">
+                        📄 Upload File
+                    </button>
+                    <button class="input-method-tab" onclick="switchInputMethod('manual')">
+                        ✏️ Manual Input
+                    </button>
                 </div>
 
-                <div class="form-group">
-                    <label for="taskData">Task Data</label>
-                    <textarea id="taskData" placeholder="Enter your task data here..."></textarea>
+                <!-- File Upload Method -->
+                <div class="input-method-content active" id="fileInputMethod">
+                    <div class="file-upload" id="fileUpload" onclick="document.getElementById('fileInput').click()">
+                        <div class="file-upload-icon">📁</div>
+                        <div class="file-upload-text">Click to upload or drag & drop</div>
+                        <div class="file-upload-hint">Supported formats: Excel (.xlsx, .xls), CSV (.csv)</div>
+                    </div>
+                    <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+                    
+                    <div class="file-info" id="fileInfo">
+                        <div class="file-info-content">
+                            <div class="file-info-details">
+                                <span id="fileIcon">📄</span>
+                                <div>
+                                    <div id="fileName"></div>
+                                    <div id="fileSize" style="font-size: 0.9em; color: #6c757d;"></div>
+                                </div>
+                            </div>
+                            <button class="btn btn-small btn-secondary" onclick="clearFile()">Remove</button>
+                        </div>
+                    </div>
+
+                    <div class="example">
+                        <h4>Expected File Format:</h4>
+                        <p><strong>Column A:</strong> Task Name (required)</p>
+                        <p><strong>Column B:</strong> Epic Link URL or Key (optional)</p>
+                        <p><strong>Columns C-F:</strong> Additional data (optional)</p>
+                        <p><small>The first row will be treated as headers and skipped.</small></p>
+                    </div>
                 </div>
 
-                <div class="example" id="csvExample">
-                    <h4>CSV Format Example:</h4>
-                    <pre>Task Name,Epic Link,Min Estimate,Max Estimate
+                <!-- Manual Input Method -->
+                <div class="input-method-content" id="manualInputMethod">
+                    <div class="form-group">
+                        <label for="inputFormat">Input Format</label>
+                        <select id="inputFormat" onchange="toggleInputFormat()">
+                            <option value="csv">CSV</option>
+                            <option value="json">JSON</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskData">Task Data</label>
+                        <textarea id="taskData" placeholder="Enter your task data here..."></textarea>
+                    </div>
+
+                    <div class="example" id="csvExample">
+                        <h4>CSV Format Example:</h4>
+                        <pre>Task Name,Epic Link,Min Estimate,Max Estimate
 "Setup Laravel Project","PROJ-100",2,4
 "Create User Model","PROJ-100",1,3
 "Documentation Task","PROJ-101",,</pre>
-                    <p><small>Note: Min/Max estimates are optional. Leave empty if not needed.</small></p>
-                </div>
+                        <p><small>Note: Min/Max estimates are optional. Leave empty if not needed.</small></p>
+                    </div>
 
-                <div class="example hidden" id="jsonExample">
-                    <h4>JSON Format Example:</h4>
-                    <pre>[
+                    <div class="example hidden" id="jsonExample">
+                        <h4>JSON Format Example:</h4>
+                        <pre>[
   {
     "taskName": "Setup Laravel Project",
     "epicLink": "PROJ-100"
@@ -340,11 +486,14 @@
     "epicLink": "PROJ-100"
   }
 ]</pre>
+                    </div>
                 </div>
 
-                <button class="btn" onclick="parseData()">
-                    📊 Parse & Preview
-                </button>
+                <div style="margin-top: 20px;">
+                    <button class="btn" id="parseBtn" onclick="parseData()" disabled>
+                        📊 Parse & Preview
+                    </button>
+                </div>
             </div>
 
             <!-- Preview Section -->
@@ -376,6 +525,137 @@
     <script>
         let parsedTasks = [];
         let creationLog = [];
+        let currentInputMethod = 'file';
+        let uploadedFile = null;
+
+        function switchInputMethod(method) {
+            currentInputMethod = method;
+            
+            // Update tabs
+            document.querySelectorAll('.input-method-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.input-method-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(method + 'InputMethod').classList.add('active');
+            
+            // Update parse button state
+            updateParseButtonState();
+        }
+
+        function updateParseButtonState() {
+            const parseBtn = document.getElementById('parseBtn');
+            
+            if (currentInputMethod === 'file') {
+                parseBtn.disabled = !uploadedFile;
+            } else {
+                const data = document.getElementById('taskData').value.trim();
+                parseBtn.disabled = !data;
+            }
+        }
+
+        // File upload handling
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadedFile = file;
+                showFileInfo(file);
+                updateParseButtonState();
+            }
+        }
+
+        function showFileInfo(file) {
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const fileIcon = document.getElementById('fileIcon');
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            // Set icon based on file type
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (extension === 'xlsx' || extension === 'xls') {
+                fileIcon.textContent = '📊';
+            } else if (extension === 'csv') {
+                fileIcon.textContent = '📋';
+            } else {
+                fileIcon.textContent = '📄';
+            }
+            
+            fileInfo.style.display = 'block';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function clearFile() {
+            uploadedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            updateParseButtonState();
+        }
+
+        // Drag and drop handling
+        function setupDragAndDrop() {
+            const fileUpload = document.getElementById('fileUpload');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileUpload.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileUpload.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileUpload.addEventListener(eventName, unhighlight, false);
+            });
+            
+            fileUpload.addEventListener('drop', handleDrop, false);
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            document.getElementById('fileUpload').classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            document.getElementById('fileUpload').classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                const file = files[0];
+                const allowedTypes = ['.xlsx', '.xls', '.csv'];
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                
+                if (allowedTypes.includes(extension)) {
+                    uploadedFile = file;
+                    document.getElementById('fileInput').files = files;
+                    showFileInfo(file);
+                    updateParseButtonState();
+                } else {
+                    alert('Please upload only Excel (.xlsx, .xls) or CSV (.csv) files');
+                }
+            }
+        }
 
         function toggleInputFormat() {
             const format = document.getElementById('inputFormat').value;
@@ -391,26 +671,56 @@
             }
         }
 
-        function parseData() {
-            const format = document.getElementById('inputFormat').value;
-            const data = document.getElementById('taskData').value.trim();
-            
-            if (!data) {
-                alert('Please enter task data');
-                return;
-            }
-
+        async function parseData() {
             try {
-                if (format === 'csv') {
-                    parsedTasks = parseCSV(data);
-                } else {
-                    parsedTasks = JSON.parse(data);
+                if (currentInputMethod === 'file' && uploadedFile) {
+                    await parseFileData();
+                } else if (currentInputMethod === 'manual') {
+                    parseManualData();
                 }
 
                 displayPreview();
                 document.getElementById('previewSection').classList.remove('hidden');
             } catch (error) {
                 alert('Error parsing data: ' + error.message);
+            }
+        }
+
+        async function parseFileData() {
+            const formData = new FormData();
+            formData.append('file', uploadedFile);
+            
+            const response = await fetch('/api/upload-tasks', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            
+            parsedTasks = result.tasks;
+            addLog(`📁 Loaded ${result.totalTasks} tasks from ${result.filename}`, 'info');
+        }
+
+        function parseManualData() {
+            const format = document.getElementById('inputFormat').value;
+            const data = document.getElementById('taskData').value.trim();
+            
+            if (!data) {
+                throw new Error('Please enter task data');
+            }
+
+            if (format === 'csv') {
+                parsedTasks = parseCSV(data);
+            } else {
+                parsedTasks = JSON.parse(data);
             }
         }
 
@@ -421,7 +731,7 @@
 
             for (let i = 1; i < lines.length; i++) {
                 const values = parseCSVLine(lines[i]);
-                if (values.length >= 4) {
+                if (values.length >= 2) {
                     tasks.push({
                         taskName: values[0],
                         epicLink: values[1],
@@ -465,9 +775,6 @@
                         <tr>
                             <th>Task Name</th>
                             <th>Epic Link</th>
-                            <th>Min Estimate</th>
-                            <th>Max Estimate</th>
-                            <th>Average Estimate</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -475,19 +782,10 @@
             `;
 
             parsedTasks.forEach((task, index) => {
-                const minEst = task.minEstimate || '-';
-                const maxEst = task.maxEstimate || '-';
-                const avgEstimate = (task.minEstimate && task.maxEstimate) 
-                    ? Math.round((task.minEstimate + task.maxEstimate) / 2) 
-                    : '-';
-                
                 html += `
                     <tr id="task-${index}">
                         <td>${task.taskName}</td>
-                        <td>${task.epicLink}</td>
-                        <td>${minEst}</td>
-                        <td>${maxEst}</td>
-                        <td><strong>${avgEstimate}</strong></td>
+                        <td>${task.epicLink || '-'}</td>
                         <td><span class="status status-pending">Pending</span></td>
                     </tr>
                 `;
@@ -594,7 +892,6 @@
                                     progressText.textContent = `Completed! Success: ${data.successCount}, Errors: ${data.errorCount}`;
                                     addLog(`🎉 Process completed! ${data.successCount} tasks created, ${data.errorCount} errors`, 'info');
                                     
-                                    // Update global counters
                                     successCount = data.successCount;
                                     errorCount = data.errorCount;
                                 }
@@ -636,49 +933,55 @@
                 log: creationLog,
                 summary: {
                     totalTasks: parsedTasks.length,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString
                 }
-            };
+           };
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], {
-                type: 'application/json'
-            });
-            
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `jira-tasks-${new Date().getTime()}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
+           const blob = new Blob([JSON.stringify(data, null, 2)], {
+               type: 'application/json'
+           });
+           
+           const url = URL.createObjectURL(blob);
+           const a = document.createElement('a');
+           a.href = url;
+           a.download = `jira-tasks-${new Date().getTime()}.json`;
+           document.body.appendChild(a);
+           a.click();
+           document.body.removeChild(a);
+           URL.revokeObjectURL(url);
+       }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load saved configuration
-            const savedConfig = localStorage.getItem('jiraConfig');
-            if (savedConfig) {
-                const config = JSON.parse(savedConfig);
-                document.getElementById('jiraUrl').value = config.jiraUrl || '';
-                document.getElementById('email').value = config.email || '';
-                document.getElementById('projectKey').value = config.projectKey || '';
-                document.getElementById('issueType').value = config.issueType || 'Task';
-            }
+       // Initialize
+       document.addEventListener('DOMContentLoaded', function() {
+           // Setup drag and drop
+           setupDragAndDrop();
+           
+           // Load saved configuration
+           const savedConfig = localStorage.getItem('jiraConfig');
+           if (savedConfig) {
+               const config = JSON.parse(savedConfig);
+               document.getElementById('jiraUrl').value = config.jiraUrl || '';
+               document.getElementById('email').value = config.email || '';
+               document.getElementById('projectKey').value = config.projectKey || '';
+               document.getElementById('issueType').value = config.issueType || 'Task';
+           }
 
-            // Save configuration on change
-            ['jiraUrl', 'email', 'projectKey', 'issueType'].forEach(id => {
-                document.getElementById(id).addEventListener('change', function() {
-                    const config = {
-                        jiraUrl: document.getElementById('jiraUrl').value,
-                        email: document.getElementById('email').value,
-                        projectKey: document.getElementById('projectKey').value,
-                        issueType: document.getElementById('issueType').value
-                    };
-                    localStorage.setItem('jiraConfig', JSON.stringify(config));
-                });
-            });
-        });
-    </script>
+           // Save configuration on change
+           ['jiraUrl', 'email', 'projectKey', 'issueType'].forEach(id => {
+               document.getElementById(id).addEventListener('change', function() {
+                   const config = {
+                       jiraUrl: document.getElementById('jiraUrl').value,
+                       email: document.getElementById('email').value,
+                       projectKey: document.getElementById('projectKey').value,
+                       issueType: document.getElementById('issueType').value
+                   };
+                   localStorage.setItem('jiraConfig', JSON.stringify(config));
+               });
+           });
+
+           // Update parse button state when manual input changes
+           document.getElementById('taskData').addEventListener('input', updateParseButtonState);
+       });
+   </script>
 </body>
 </html>
