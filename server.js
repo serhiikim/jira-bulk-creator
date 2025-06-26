@@ -9,7 +9,8 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
  
 const storage = multer.memoryStorage();
@@ -33,12 +34,26 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'client/dist')));
 
-// Serve the React app
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
-});
+if (!isDevelopment) {
+    const distPath = path.join(__dirname, 'client/dist');
+    
+    // Проверяем существование dist папки
+    const fs = require('fs');
+    if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        
+        // Serve the React app for all non-API routes
+        app.get('*', (req, res) => {
+            // Исключаем API routes
+            if (!req.path.startsWith('/api')) {
+                res.sendFile(path.join(distPath, 'index.html'));
+            }
+        });
+    } else {
+        console.log('⚠️  Warning: dist folder not found. Run "npm run build" first for production.');
+    }
+}
 
 // Function to extract epic key from URL
 function extractEpicKey(epicLink) {
