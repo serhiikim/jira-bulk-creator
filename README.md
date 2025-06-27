@@ -63,7 +63,8 @@ A web application to **bulk create Jira tasks** from Excel, CSV, or JSON data. E
 
 6.  **Open the app:**
 
-    Visit [http://localhost:3000](http://localhost:3000) in your browser.
+    Visit [http://localhost:5173](http://localhost:5173) in your browser (development).
+    Visit [http://localhost:3001](http://localhost:3001) in your browser (production).
 
 ---
 
