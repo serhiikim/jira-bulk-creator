@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import ConfigurationSection from './bulk-creator/ConfigurationSection';
+import InputSection from './bulk-creator/InputSection';
+import PreviewSection from './bulk-creator/PreviewSection';
+import ProgressSection from './bulk-creator/ProgressSection';
 
 const JiraBulkCreator = () => {
     const [parsedTasks, setParsedTasks] = useState([]);
@@ -399,218 +403,47 @@ const JiraBulkCreator = () => {
             </div>
 
             <div className="content">
-                {/* Configuration Section */}
-                <div className="config-section">
-                    <h2 className="section-title">⚙️ Jira Configuration</h2>
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="jiraUrl">Jira URL</label>
-                            <input
-                                type="text"
-                                id="jiraUrl"
-                                placeholder="https://your-domain.atlassian.net"
-                                value={jiraUrl}
-                                onChange={(e) => setJiraUrl(e.target.value)}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="email">Email</label>
-                            <input
-                                type="email"
-                                id="email"
-                                placeholder="your.email@company.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="projectKey">Project Key</label>
-                            <input
-                                type="text"
-                                id="projectKey"
-                                placeholder="PROJ"
-                                value={projectKey}
-                                onChange={(e) => setProjectKey(e.target.value)}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="issueType">Issue Type</label>
-                            <select
-                                id="issueType"
-                                value={issueType}
-                                onChange={(e) => setIssueType(e.target.value)}
-                            >
-                                <option value="Task">Task</option>
-                                <option value="Story">Story</option>
-                                <option value="Bug">Bug</option>
-                                <option value="Epic">Epic</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                <ConfigurationSection 
+                    jiraUrl={jiraUrl} 
+                    setJiraUrl={setJiraUrl} 
+                    email={email} 
+                    setEmail={setEmail} 
+                    projectKey={projectKey} 
+                    setProjectKey={setProjectKey} 
+                    issueType={issueType} 
+                    setIssueType={setIssueType} 
+                />
 
-                {/* Input Section */}
-                <div className="input-section">
-                    <h2 className="section-title">📋 Task Data</h2>
+                <InputSection 
+                    currentInputMethod={currentInputMethod} 
+                    switchInputMethod={switchInputMethod} 
+                    parseData={parseData} 
+                    uploadedFile={uploadedFile} 
+                    handleFileUpload={handleFileUpload} 
+                    clearFile={clearFile} 
+                    showFileInfo={showFileInfo} 
+                    formatFileSize={formatFileSize} 
+                    inputFormat={inputFormat} 
+                    toggleInputFormat={toggleInputFormat} 
+                    taskData={taskData} 
+                    setTaskData={setTaskData} 
+                />
 
-                    {/* Input Method Tabs */}
-                    <div className="input-method-tabs">
-                        <button
-                            className={`input-method-tab ${currentInputMethod === 'file' ? 'active' : ''}`}
-                            onClick={() => switchInputMethod('file')}
-                        >
-                            📄 Upload File
-                        </button>
-                        <button
-                            className={`input-method-tab ${currentInputMethod === 'manual' ? 'active' : ''}`}
-                            onClick={() => switchInputMethod('manual')}
-                        >
-                            ✏️ Manual Input
-                        </button>
-                    </div>
+                {showPreviewSection && (
+                    <PreviewSection 
+                        parsedTasks={parsedTasks} 
+                        createTasks={createTasks} 
+                        downloadJSON={downloadJSON} 
+                    />
+                )}
 
-                    {/* File Upload Method */}
-                    <div className={`input-method-content ${currentInputMethod === 'file' ? 'active' : ''}`} id="fileInputMethod">
-                        <div className="file-upload" id="fileUpload" onClick={() => document.getElementById('fileInput').click()}>
-                            <div className="file-upload-icon">📁</div>
-                            <div className="file-upload-text">Click to upload or drag & drop</div>
-                            <div className="file-upload-hint">Supported formats: Excel (.xlsx, .xls), CSV (.csv)</div>
-                        </div>
-                        <input type="file" id="fileInput" className="file-input" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} />
-
-                        <div className="file-info" id="fileInfo" style={{ display: uploadedFile ? 'block' : 'none' }}>
-                            <div className="file-info-content">
-                                <div className="file-info-details">
-                                    <span id="fileIcon">📄</span>
-                                    <div>
-                                        <div id="fileName"></div>
-                                        <div id="fileSize" style={{ fontSize: '0.9em', color: '#6c757d' }}></div>
-                                    </div>
-                                </div>
-                                <button className="btn btn-small btn-secondary" onClick={clearFile}>Remove</button>
-                            </div>
-                        </div>
-
-                        <div className="example">
-                            <h4>Expected File Format:</h4>
-                            <p><strong>Column A:</strong> Task Name (required)</p>
-                            <p><strong>Column B:</strong> Epic Link URL or Key (optional)</p>
-                            <p><strong>Columns C-F:</strong> Additional data (optional)</p>
-                            <p><small>The first row will be treated as headers and skipped.</small></p>
-                        </div>
-                    </div>
-
-                    {/* Manual Input Method */}
-                    <div className={`input-method-content ${currentInputMethod === 'manual' ? 'active' : ''}`} id="manualInputMethod">
-                        <div className="form-group">
-                            <label htmlFor="inputFormat">Input Format</label>
-                            <select id="inputFormat" value={inputFormat} onChange={toggleInputFormat}>
-                                <option value="csv">CSV</option>
-                                <option value="json">JSON</option>
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="taskData">Task Data</label>
-                            <textarea
-                                id="taskData"
-                                placeholder="Enter your task data here..."
-                                value={taskData}
-                                onChange={(e) => setTaskData(e.target.value)}
-                            ></textarea>
-                        </div>
-
-                        <div className={`example ${inputFormat === 'csv' ? '' : 'hidden'}`} id="csvExample">
-                            <h4>CSV Format Example:</h4>
-                            <pre>Task Name,Epic Link,Min Estimate,Max Estimate
-"Setup Laravel Project","PROJ-100",2,4
-"Create User Model","PROJ-100",1,3
-"Documentation Task","PROJ-101",,</pre>
-                            <p><small>Note: Min/Max estimates are optional. Leave empty if not needed.</small></p>
-                        </div>
-
-                        <div className={`example ${inputFormat === 'json' ? '' : 'hidden'}`} id="jsonExample">
-                            <h4>JSON Format Example:</h4>
-                            <pre>{
-`[
-  {
-    "taskName": "Setup Laravel Project",
-    "epicLink": "PROJ-100"
-  },
-  {
-    "taskName": "Documentation Task",
-    "epicLink": "PROJ-100"
-  }
-]`
-                            }</pre>
-                        </div>
-                    </div>
-
-                    <div style={{ marginTop: '20px' }}>
-                        <button className="btn" id="parseBtn" onClick={parseData}>
-                            📊 Parse & Preview
-                        </button>
-                    </div>
-                </div>
-
-                {/* Preview Section */}
-                <div className={`preview-section ${showPreviewSection ? '' : 'hidden'}`} id="previewSection">
-                    <h2 className="section-title">👀 Preview Tasks</h2>
-                    <div id="taskPreview">
-                        <table className="preview-table">
-                            <thead>
-                                <tr>
-                                    <th>Task Name</th>
-                                    <th>Epic Link</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {parsedTasks.map((task, index) => (
-                                    <tr key={index} id={`task-${index}`}>
-                                        <td>{task.taskName}</td>
-                                        <td>{task.epicLink || '-'}</td>
-                                        <td>
-                                            <span className={`status status-${task.status || 'pending'}`}>
-                                                {task.status === 'success' ? (
-                                                    <a href={task.jiraUrl} target="_blank" rel="noopener noreferrer">Created</a>
-                                                ) : (
-                                                    task.status === 'error' ? 'Error' : 'Pending'
-                                                )}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="form-row" style={{ marginTop: '20px' }}>
-                        <button className="btn btn-success" onClick={createTasks}>
-                            🚀 Create Tasks in Jira
-                        </button>
-                        <button className="btn btn-secondary" onClick={downloadJSON}>
-                            💾 Download JSON
-                        </button>
-                    </div>
-                </div>
-
-                {/* Progress Section */}
-                <div className={`preview-section ${showProgressSection ? '' : 'hidden'}`} id="progressSection">
-                    <h2 className="section-title">⏳ Creation Progress</h2>
-                    <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: progressFillWidth }}></div>
-                    </div>
-                    <div id="progressText">{progressText}</div>
-                    <div className="log" id="log">
-                        {creationLog.map((entry, index) => (
-                            <div key={index} className={`log-entry log-${entry.type}`}>
-                                [{new Date(entry.timestamp).toLocaleTimeString()}] {entry.message}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                {showProgressSection && (
+                    <ProgressSection 
+                        progressFillWidth={progressFillWidth} 
+                        progressText={progressText} 
+                        creationLog={creationLog} 
+                    />
+                )}
             </div>
         </div>
     );
