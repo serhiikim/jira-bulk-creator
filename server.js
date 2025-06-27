@@ -35,26 +35,6 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 
-if (!isDevelopment) {
-    const distPath = path.join(__dirname, 'client/dist');
-    
-    // Проверяем существование dist папки
-    const fs = require('fs');
-    if (fs.existsSync(distPath)) {
-        app.use(express.static(distPath));
-        
-        // Serve the React app for all non-API routes
-        app.get('*', (req, res) => {
-            // Исключаем API routes
-            if (!req.path.startsWith('/api')) {
-                res.sendFile(path.join(distPath, 'index.html'));
-            }
-        });
-    } else {
-        console.log('⚠️  Warning: dist folder not found. Run "npm run build" first for production.');
-    }
-}
-
 // Function to extract epic key from URL
 function extractEpicKey(epicLink) {
     if (!epicLink) return null;
@@ -503,6 +483,22 @@ app.get('/api/debug/epic-field/:projectKey', async (req, res) => {
         });
     }
 });
+
+
+if (!isDevelopment) {
+    const distPath = path.join(__dirname, 'client/dist');
+    const fs = require('fs');
+    if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+            if (!req.path.startsWith('/api')) {
+                res.sendFile(path.join(distPath, 'index.html'));
+            }
+        });
+    } else {
+        console.log('⚠️  Warning: dist folder not found. Run "npm run build" first for production.');
+    }
+}
 
 // Start server
 app.listen(PORT, () => {
