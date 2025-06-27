@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Papa from 'papaparse';
 import ConfigurationSection from './bulk-creator/ConfigurationSection';
 import InputSection from './bulk-creator/InputSection';
 import PreviewSection from './bulk-creator/PreviewSection';
@@ -30,40 +31,6 @@ const JiraBulkCreator = () => {
             setProjectKey(config.projectKey || '');
             setIssueType(config.issueType || 'Task');
         }
-
-        // Setup drag and drop
-        const fileUpload = document.getElementById('fileUpload');
-        if (fileUpload) {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                fileUpload.addEventListener(eventName, preventDefaults, false);
-            });
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                fileUpload.addEventListener(eventName, highlight, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                fileUpload.addEventListener(eventName, unhighlight, false);
-            });
-
-            fileUpload.addEventListener('drop', handleDrop, false);
-        }
-
-        return () => {
-            // Cleanup event listeners
-            if (fileUpload) {
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    fileUpload.removeEventListener(eventName, preventDefaults, false);
-                });
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    fileUpload.removeEventListener(eventName, highlight, false);
-                });
-                ['dragleave', 'drop'].forEach(eventName => {
-                    fileUpload.removeEventListener(eventName, unhighlight, false);
-                });
-                fileUpload.removeEventListener('drop', handleDrop, false);
-            }
-        };
     }, []);
 
     useEffect(() => {
@@ -72,99 +39,8 @@ const JiraBulkCreator = () => {
         localStorage.setItem('jiraConfig', JSON.stringify(config));
     }, [jiraUrl, email, projectKey, issueType]);
 
-    useEffect(() => {
-        updateParseButtonState();
-    }, [uploadedFile, taskData, currentInputMethod]);
-
-    const preventDefaults = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    };
-
-    const highlight = () => {
-        document.getElementById('fileUpload')?.classList.add('dragover');
-    };
-
-    const unhighlight = () => {
-        document.getElementById('fileUpload')?.classList.remove('dragover');
-    };
-
-    const handleDrop = (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-
-        if (files.length > 0) {
-            const file = files[0];
-            const allowedTypes = ['.xlsx', '.xls', '.csv'];
-            const extension = '.' + file.name.split('.').pop().toLowerCase();
-
-            if (allowedTypes.includes(extension)) {
-                setUploadedFile(file);
-                showFileInfo(file);
-            } else {
-                alert('Please upload only Excel (.xlsx, .xls) or CSV (.csv) files');
-            }
-        }
-    };
-
     const switchInputMethod = (method) => {
         setCurrentInputMethod(method);
-    };
-
-    const updateParseButtonState = () => {
-        const parseBtn = document.getElementById('parseBtn');
-        if (parseBtn) {
-            if (currentInputMethod === 'file') {
-                parseBtn.disabled = !uploadedFile;
-            } else {
-                parseBtn.disabled = !taskData.trim();
-            }
-        }
-    };
-
-    const handleFileUpload = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setUploadedFile(file);
-            showFileInfo(file);
-        }
-    };
-
-    const showFileInfo = (file) => {
-        const fileInfo = document.getElementById('fileInfo');
-        const fileNameElem = document.getElementById('fileName');
-        const fileSizeElem = document.getElementById('fileSize');
-        const fileIconElem = document.getElementById('fileIcon');
-
-        if (fileNameElem) fileNameElem.textContent = file.name;
-        if (fileSizeElem) fileSizeElem.textContent = formatFileSize(file.size);
-
-        const extension = file.name.split('.').pop().toLowerCase();
-        if (fileIconElem) {
-            if (extension === 'xlsx' || extension === 'xls') {
-                fileIconElem.textContent = '📊';
-            } else if (extension === 'csv') {
-                fileIconElem.textContent = '📋';
-            } else {
-                fileIconElem.textContent = '📄';
-            }
-        }
-
-        if (fileInfo) fileInfo.style.display = 'block';
-    };
-
-    const formatFileSize = (bytes) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    };
-
-    const clearFile = () => {
-        setUploadedFile(null);
-        document.getElementById('fileInput').value = '';
-        document.getElementById('fileInfo').style.display = 'none';
     };
 
     const toggleInputFormat = (e) => {
@@ -213,49 +89,17 @@ const JiraBulkCreator = () => {
         }
 
         if (inputFormat === 'csv') {
-            setParsedTasks(parseCSV(taskData));
+            const result = Papa.parse(taskData, { header: true });
+            const tasks = result.data.map(row => ({
+                taskName: row['Task Name'],
+                epicLink: row['Epic Link'],
+                minEstimate: parseInt(row['Min Estimate']) || 0,
+                maxEstimate: parseInt(row['Max Estimate']) || 0,
+            }));
+            setParsedTasks(tasks);
         } else {
             setParsedTasks(JSON.parse(taskData));
         }
-    };
-
-    const parseCSV = (csvText) => {
-        const lines = csvText.split('\n').filter(line => line.trim());
-        const tasks = [];
-
-        for (let i = 1; i < lines.length; i++) {
-            const values = parseCSVLine(lines[i]);
-            if (values.length >= 2) {
-                tasks.push({
-                    taskName: values[0],
-                    epicLink: values[1],
-                    minEstimate: parseInt(values[2]) || 0,
-                    maxEstimate: parseInt(values[3]) || 0
-                });
-            }
-        }
-        return tasks;
-    };
-
-    const parseCSVLine = (line) => {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                result.push(current.trim());
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        result.push(current.trim());
-        return result;
     };
 
     const createTasks = async () => {
@@ -390,10 +234,11 @@ const JiraBulkCreator = () => {
         a.href = url;
         a.download = `jira-tasks-${new Date().getTime()}.json`;
         document.body.appendChild(a);
-        a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
+
+    const isParseButtonDisabled = currentInputMethod === 'file' ? !uploadedFile : !taskData.trim();
 
     return (
         <div className="container">
@@ -419,14 +264,12 @@ const JiraBulkCreator = () => {
                     switchInputMethod={switchInputMethod} 
                     parseData={parseData} 
                     uploadedFile={uploadedFile} 
-                    handleFileUpload={handleFileUpload} 
-                    clearFile={clearFile} 
-                    showFileInfo={showFileInfo} 
-                    formatFileSize={formatFileSize} 
+                    setUploadedFile={setUploadedFile}
                     inputFormat={inputFormat} 
                     toggleInputFormat={toggleInputFormat} 
                     taskData={taskData} 
                     setTaskData={setTaskData} 
+                    isParseButtonDisabled={isParseButtonDisabled}
                 />
 
                 {showPreviewSection && (

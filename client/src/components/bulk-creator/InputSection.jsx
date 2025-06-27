@@ -8,14 +8,12 @@ const InputSection = (props) => {
         switchInputMethod, 
         parseData, 
         uploadedFile, 
-        handleFileUpload, 
-        clearFile, 
-        showFileInfo, 
-        formatFileSize, 
+        setUploadedFile,
         inputFormat, 
         toggleInputFormat, 
         taskData, 
-        setTaskData 
+        setTaskData, 
+        isParseButtonDisabled
     } = props;
 
     return (
@@ -40,10 +38,7 @@ const InputSection = (props) => {
             {currentInputMethod === 'file' ? (
                 <FileInput 
                     uploadedFile={uploadedFile} 
-                    handleFileUpload={handleFileUpload} 
-                    clearFile={clearFile} 
-                    showFileInfo={showFileInfo} 
-                    formatFileSize={formatFileSize} 
+                    setUploadedFile={setUploadedFile}
                 />
             ) : (
                 <ManualInput 
@@ -55,7 +50,7 @@ const InputSection = (props) => {
             )}
 
             <div style={{ marginTop: '20px' }}>
-                <button className="btn" id="parseBtn" onClick={parseData}>
+                <button className="btn" onClick={parseData} disabled={isParseButtonDisabled}>
                     📊 Parse & Preview
                 </button>
             </div>
